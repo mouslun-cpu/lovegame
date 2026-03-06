@@ -1,0 +1,885 @@
+﻿<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Lovegame Interactive AVG</title>
+    <!-- QR Code Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- Google Fonts for Japanese Style -->
+    <link href="https://fonts.googleapis.com/css2?family=Sawarabi+Mincho&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary-color: #ff6b81;
+            --text-color: #f1f2f6;
+            --bg-color: #2f3542;
+            --dialogue-bg: rgba(0, 0, 0, 0.85);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-color);
+            font-family: 'Sawarabi Mincho', "Helvetica Neue", Arial, "微軟正黑體", serif;
+            overflow: hidden;
+            /* 防止螢幕滾動，營造遊戲全螢幕感 */
+            user-select: none;
+        }
+
+        #game-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100vw;
+            position: relative;
+            max-width: 100vw;
+            margin: 0 auto;
+        }
+
+        /* ======= 場景與 UI 70/30 比例分配 ======= */
+        #scene-display {
+            height: 70vh;
+            width: 100%;
+            background-color: #000;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            transition: background-image 0.5s ease-in-out;
+        }
+
+        #ui-area {
+            height: 30vh;
+            width: 100%;
+            background: var(--dialogue-bg);
+            border-top: 2px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            padding: 20px 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+        }
+
+        /* ======= 對話框與打字機效果 ======= */
+        #dialogue-text {
+            color: var(--text-color);
+            font-size: 1.6rem;
+            line-height: 1.8;
+            letter-spacing: 2px;
+            margin: 0;
+            text-shadow: 1px 1px 2px #000;
+            min-height: 4.8rem;
+            word-break: break-all;
+        }
+
+        .typewriter::after {
+            content: '▼';
+            animation: blink 1s step-end infinite;
+            font-size: 1.2rem;
+            margin-left: 8px;
+            color: #ffd700;
+            vertical-align: middle;
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0;
+            }
+        }
+
+        /* ======= 投票選項按鈕 ======= */
+        #voting-options {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 20px;
+            width: 100%;
+            max-width: 600px;
+            align-self: center;
+        }
+
+        .vote-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-color);
+            border: 1px solid var(--primary-color);
+            padding: 15px 20px;
+            font-size: 1.2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+            outline: none;
+        }
+
+        .vote-btn:hover {
+            background: rgba(255, 107, 129, 0.4);
+        }
+
+        .vote-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: rgba(128, 128, 128, 0.2);
+            border-color: #555;
+            color: #999;
+        }
+
+        .vote-btn.selected {
+            background: var(--primary-color);
+            border-color: #fff;
+            color: #fff;
+            font-weight: bold;
+            box-shadow: 0 0 10px var(--primary-color);
+        }
+
+        #waiting-message {
+            color: #aaa;
+            font-style: italic;
+            text-align: center;
+            margin-top: 20px;
+            font-size: 1.1rem;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 0.6;
+            }
+
+            50% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0.6;
+            }
+        }
+
+        /* ======= 教師端專屬面板 ======= */
+        body.is-admin #admin-panel {
+            display: flex;
+        }
+
+        #admin-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            bottom: auto;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: flex-end;
+            gap: 20px;
+            z-index: 1000;
+        }
+
+        #qrcode-wrapper {
+            background: rgba(255, 255, 255, 1);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+            text-align: center;
+        }
+
+        .qr-hint {
+            margin-top: 5px;
+            font-size: 0.9rem;
+            color: #333;
+            font-weight: bold;
+        }
+
+        #admin-controls {
+            margin-top: auto;
+            margin-bottom: 20px;
+            /* offset from the dialogue border */
+        }
+
+        #admin-controls button {
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(5px);
+            padding: 8px 16px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: background 0.3s, transform 0.1s;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            width: auto;
+            align-self: flex-end;
+            margin-bottom: 8px;
+        }
+
+        #admin-controls button#start-game-btn {
+            background: var(--primary-color);
+            border: none;
+            font-weight: bold;
+        }
+
+        #admin-controls button#reset-game-btn {
+            background: #444;
+            border: none;
+            opacity: 0.7;
+        }
+
+        #admin-controls button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        #admin-controls button#start-game-btn:hover {
+            background: #ff526b;
+        }
+
+        #admin-controls button:active {
+            transform: scale(0.95);
+        }
+
+        /* ======= 投票統計圖長條圖 ======= */
+        #voting-chart {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 20px;
+            width: 100%;
+            max-width: 600px;
+            align-self: center;
+        }
+
+        .chart-bar {
+            position: relative;
+            height: 36px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 18px;
+            border: 1px solid var(--primary-color);
+            overflow: hidden;
+            line-height: 36px;
+        }
+
+        .bar-fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            background: rgba(255, 107, 129, 0.6);
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* ======= 教師隱藏控制鈕 ======= */
+        #next-btn {
+            position: absolute;
+            right: 20px;
+            bottom: 20px;
+            background: transparent;
+            color: rgba(255, 255, 255, 0.5);
+            border: none;
+            font-size: 2rem;
+            cursor: pointer;
+            transition: color 0.3s, transform 0.1s;
+        }
+
+        #next-btn:hover {
+            color: rgba(255, 255, 255, 1);
+        }
+
+        #next-btn:active {
+            transform: scale(0.9);
+        }
+
+        #reset-game-btn {
+            position: absolute;
+            top: 15px;
+            right: 0;
+            background: rgba(255, 107, 129, 0.2);
+            border: 1px solid rgba(255, 107, 129, 0.5);
+            border-right: none;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.9rem;
+            padding: 8px 15px 8px 20px;
+            border-radius: 20px 0 0 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            z-index: 1000;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        #reset-game-btn:hover {
+            color: #fff;
+            background: rgba(255, 107, 129, 0.8);
+            border-color: rgba(255, 107, 129, 1);
+            transform: translateX(-5px);
+        }
+
+        #bar-B {
+            background: rgba(255, 107, 129, 0.6);
+        }
+
+        .chart-bar span {
+            position: relative;
+            z-index: 10;
+            padding-left: 15px;
+            color: white;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+            font-size: 1.1rem;
+        }
+
+        /* ======= 標題/登入畫面 ======= */
+        #title-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), url('./image/00.png');
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+            color: #fff;
+        }
+
+        #title-screen h1 {
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 4rem;
+            text-shadow: 2px 2px 10px rgba(255, 107, 129, 0.8), 0 0 20px rgba(0, 0, 0, 0.8);
+            letter-spacing: 5px;
+        }
+
+        #title-screen h2 {
+            color: white;
+            font-size: 1.8rem;
+            font-weight: normal;
+            margin-bottom: 40px;
+            letter-spacing: 5px;
+            opacity: 0.9;
+            text-shadow: 1px 1px 5px rgba(0, 0, 0, 0.8);
+        }
+
+        /* 標題畫面的按鈕 */
+        .title-btn {
+            background: rgba(255, 107, 129, 0.8);
+            color: #fff;
+            border: 2px solid #fff;
+            padding: 15px 50px;
+            font-size: 1.5rem;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            font-family: inherit;
+            margin-top: 20px;
+        }
+
+        .title-btn:hover {
+            transform: scale(1.05);
+            background: rgba(255, 107, 129, 1);
+            box-shadow: 0 6px 20px rgba(255, 107, 129, 0.6);
+        }
+
+        #admin-title-controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        #online-count {
+            font-size: 1.2rem;
+            text-shadow: 1px 1px 3px #000;
+            margin: 0;
+            color: #fff;
+        }
+
+        #copyright {
+            position: absolute;
+            bottom: 15px;
+            right: 20px;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.5);
+            text-shadow: 1px 1px 2px #000;
+        }
+
+        /* 顯示與隱藏工具 */
+        .hidden {
+            display: none !important;
+        }
+
+        /* ======= 手機端自適應 ======= */
+        @media (max-width: 768px) {
+            #ui-area {
+                padding: 15px 20px;
+            }
+
+            #dialogue-text {
+                font-size: 1.2rem;
+            }
+
+            .vote-btn {
+                padding: 12px 15px;
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 遊戲標題畫面 (覆蓋在最上層) -->
+    <div id="title-screen" class="hidden">
+        <h1>デート・ア・ライブ</h1>
+        <h2>約會大作戰</h2>
+
+        <!-- 學生端：進入按鈕 -->
+        <button id="join-btn" class="title-btn hidden">進入遊戲</button>
+
+        <!-- 學生端：等候訊息 -->
+        <h3 id="student-waiting-text" class="hidden" style="color: #ccc; font-weight: normal; margin-top: 20px;">
+            海風帶來了微鹹的氣息，故事即將展開... (等待其他人加入中)</h3>
+
+        <!-- 教師端控制面板 (在大廳) -->
+        <div id="admin-title-controls" class="hidden">
+            <div id="qrcode-wrapper">
+                <div id="qrcode-container"></div>
+                <div class="qr-hint">學生掃描加入</div>
+            </div>
+            <p id="online-count">目前上線人數：0 人</p>
+            <button id="start-game-btn" class="title-btn">開始遊戲 ▶</button>
+        </div>
+
+        <!-- 版權與版本宣告 -->
+        <div id="copyright">© 2026 Dr. Huang Wei Lun V1.0</div>
+    </div>
+
+    <div id="game-container">
+        <!-- 上半部場景圖片 (70%) -->
+        <div id="scene-display"></div>
+
+        <!-- 下半部對話與控制區 (30%) -->
+        <div id="ui-area">
+            <div id="dialogue-box">
+                <p id="dialogue-text"></p>
+                <!-- 學生端投票選項 -->
+                <div id="voting-options" class="hidden">
+                    <!-- Voting option buttons will be injected here -->
+                </div>
+                <!-- 教師端投票即時長條圖 -->
+                <div id="voting-chart" class="hidden">
+                    <div class="chart-bar">
+                        <div id="bar-A" class="bar-fill" style="width: 0%;"></div><span id="label-A"></span>
+                    </div>
+                    <div class="chart-bar">
+                        <div id="bar-B" class="bar-fill" style="width: 0%;"></div><span id="label-B"></span>
+                    </div>
+                </div>
+                <!-- 注意：現在大廳等待提示移至 title-screen，這裡主要供遊戲內等候投票使用 -->
+                <p id="waiting-message" class="hidden">等待老師與其他人...</p>
+                <!-- 教師端下一步按鈕 -->
+                <button id="next-btn" class="hidden">▶</button>
+            </div>
+        </div>
+
+        <!-- 教師端強制重置按鈕 (子彈造型置於右上) -->
+        <button id="reset-game-btn" class="hidden" title="強制重置">Restart</button>
+
+        <!-- 教師端大廳面板(已廢棄，移至title-screen) -->
+    </div>
+
+    <!-- Firebase SDK (Compat version for running from file:// without module CORS issues) -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js"></script>
+
+    <!-- Main Game Logic -->
+    <script>
+        // Firebase initialization with compat mode to run over file:///
+        const firebaseConfig = {
+            apiKey: "AIzaSyDPresURGBmmFWI60CXVNGpD4B2gkXdJMQ",
+            authDomain: "lovegame-3ed57.firebaseapp.com",
+            databaseURL: "https://lovegame-3ed57-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "lovegame-3ed57",
+            storageBucket: "lovegame-3ed57.firebasestorage.app",
+            messagingSenderId: "518614987215",
+            appId: "1:518614987215:web:ef25e1d5826db774cc22ba",
+            measurementId: "G-P2PSXP5L4P"
+        };
+
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        const storyData = {
+            "waiting": {
+                text: "海風帶來了微鹹的氣息，故事即將展開... (等待其他人加入中)",
+                imagePath: "",
+                isVoting: false
+            },
+            "start": {
+                text: "海浪的聲音很輕，卻像是敲在我的心上。為了迎接這個特別的日子，我為她描繪了一幅無懈可擊的浪漫風景。只是那時的我還不懂...",
+                imagePath: "./image/01.png",
+                next: "scene_01"
+            },
+            "scene_01": {
+                text: "結衣帶著淡雅的香水味湊到我肩邊，滑著手機螢幕，琥珀色的眼眸閃閃發光：「吶，你想吃那間評價4.8顆星開了二十年的有名牛排館，還是這間上個月新開，可以聽著海浪聲喝調酒的星空餐酒館呀？」",
+                imagePath: "./image/02.png",
+                isVoting: true,
+                options: {
+                    A: { label: "經典牛排館", next: "scene_02" },
+                    B: { label: "星空餐酒館", next: "scene_02" }
+                }
+            },
+            "scene_02": {
+                text: "天色漸暗，無盡的車陣與刺眼的紅色煞車燈交織。結衣臉色蒼白地靠在車窗上，眉頭微蹙。原本完美的行程已經徹底打亂，車內的空氣沉重得讓人難以呼吸...",
+                imagePath: "./image/03.png",
+                isVoting: true,
+                options: {
+                    A: { label: "告訴她快到了，抄小路趕往預訂的餐廳", next: "scene_03" },
+                    B: { label: "先找間路邊小吃店，讓她吃點東西再說", next: "scene_03" }
+                }
+            },
+            "scene_03": {
+                text: "燭光搖曳，好不容易坐下，結衣的表情卻僵住了。那盤昂貴的海鮮義大利麵上，竟灑滿了她最害怕的香菜。她勉強擠出一絲苦笑，輕輕嘆了一口氣：「沒關係，我挑掉就好...」",
+                imagePath: "./image/04.png",
+                isVoting: true,
+                options: {
+                    A: { label: "要求經理重做，不讓她受任何委屈", next: "calculate_ending" },
+                    B: { label: "溫柔地把自己的餐推給她，笑著化解", next: "calculate_ending" }
+                }
+            },
+            "end_bad": {
+                text: "冰冷的夜雨中，結衣沒有回頭。我僵在原地，只能看著她落寞的背影，消失在漆黑的夜色裡。原來，當你執著於完美的計畫，卻忘了去感受身邊那個人的溫度時，這場約會，就已經徹底失敗了...",
+                imagePath: "./image/05.png",
+                isVoting: false
+            },
+            "end_good": {
+                text: "夜風微涼，結衣轉過身，眼底映著星光，綻放出今天最燦爛的笑容。「雖然跟你計畫的完全不一樣，但...今天真的很開心喔。」",
+                imagePath: "./image/06.png",
+                isVoting: false
+            }
+        };
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const isAdmin = urlParams.get('role') === 'admin';
+
+        let currentSceneData = null;
+        let currentSceneId = null;
+        let hasVoted = false;
+        let roomState = null;
+        let typeWriterTimeout = null;
+        let playerName = "";
+        let isPlayerJoined = false;
+        let bWinCount = 0;
+
+        // Initialize Student UI Default
+        if (!isAdmin) {
+            document.getElementById('title-screen').classList.remove('hidden');
+            document.getElementById('join-btn').classList.remove('hidden');
+        }
+
+        document.getElementById('join-btn').addEventListener('click', () => {
+            isPlayerJoined = true;
+            document.getElementById('join-btn').classList.add('hidden');
+            document.getElementById('student-waiting-text').classList.remove('hidden');
+
+            // Increment joined count in Firebase
+            const joinedRef = db.ref('room_state/joinedCount');
+            joinedRef.transaction((count) => {
+                return (count || 0) + 1;
+            });
+
+            // Force render scene behind the title screen if needed
+            if (roomState && roomState.currentSceneId !== 'waiting') {
+                document.getElementById('title-screen').classList.add('hidden');
+                renderScene(roomState.currentSceneId);
+            }
+        });
+
+        // Initialize Admin UI
+        if (isAdmin) {
+            document.body.classList.add('is-admin');
+            document.getElementById('title-screen').classList.remove('hidden');
+            document.getElementById('admin-title-controls').classList.remove('hidden');
+
+            // Generate QR Code that points to the client view (URL without 'role=admin')
+            const studentUrl = window.location.origin + window.location.pathname;
+            new QRCode(document.getElementById("qrcode-container"), {
+                text: studentUrl,
+                width: 200,
+                height: 200,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+
+            document.getElementById('start-game-btn').classList.remove('hidden');
+
+            document.getElementById('start-game-btn').addEventListener('click', () => {
+                bWinCount = 0; // 重置計分
+                const roomRef = db.ref('room_state');
+                roomRef.update({
+                    currentSceneId: 'start',
+                    isVotingActive: false,
+                    votes: { A: 0, B: 0 }
+                });
+                document.getElementById('start-game-btn').classList.add('hidden');
+                document.getElementById('next-btn').classList.remove('hidden');
+            });
+
+            document.getElementById('next-btn').addEventListener('click', () => {
+                if (!currentSceneData) return;
+
+                let nextScene = currentSceneData.next;
+
+                if (currentSceneData.isVoting) {
+                    let votes = roomState.votes || { A: 0, B: 0 };
+                    let winner = 'A';
+                    if (votes.B > votes.A) winner = 'B';
+
+                    if (winner === 'B') {
+                        bWinCount++;
+                    }
+
+                    nextScene = currentSceneData.options[winner].next;
+
+                    // Special case ending calculation for scene_03
+                    if (nextScene === 'calculate_ending') {
+                        if (bWinCount >= 2) {
+                            nextScene = 'end_good';
+                        } else {
+                            nextScene = 'end_bad';
+                        }
+                    }
+                }
+
+                const roomRef = db.ref('room_state');
+                roomRef.update({
+                    currentSceneId: nextScene,
+                    isVotingActive: storyData[nextScene] && storyData[nextScene].isVoting ? true : false,
+                    votes: { A: 0, B: 0 }
+                });
+            });
+
+            // Handle explicitly resetting game state manually
+            document.getElementById('reset-game-btn').addEventListener('click', () => {
+                if (confirm('確定要將遊戲重置回等候大廳嗎？所有人的進度都會一起重置！')) {
+                    bWinCount = 0; // 重置計分
+                    const roomRef = db.ref('room_state');
+                    roomRef.set({
+                        currentSceneId: 'waiting',
+                        isVotingActive: false,
+                        votes: { A: 0, B: 0 },
+                        joinedCount: 0
+                    });
+                }
+            });
+
+            // Keep the hidden double click reset as a fallback on the QR code
+            document.querySelector('.qr-hint').addEventListener('dblclick', () => {
+                bWinCount = 0; // 重置計分
+                const roomRef = db.ref('room_state');
+                roomRef.set({
+                    currentSceneId: 'waiting',
+                    isVotingActive: false,
+                    votes: { A: 0, B: 0 },
+                    joinedCount: 0
+                });
+            });
+        }
+
+        // Database listener
+        const roomRef = db.ref('room_state');
+        roomRef.on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                roomState = data;
+                handleStateUpdate(data);
+            } else {
+                if (isAdmin) {
+                    roomRef.set({
+                        currentSceneId: 'waiting',
+                        isVotingActive: false,
+                        votes: { A: 0, B: 0 },
+                        joinedCount: 0
+                    });
+                }
+            }
+        });
+
+        function handleStateUpdate(state) {
+            const newSceneId = state.currentSceneId;
+
+            // Handle Title Screen visibility based on Scene
+            if (newSceneId === 'waiting') {
+                document.getElementById('title-screen').classList.remove('hidden');
+                if (isAdmin) {
+                    document.getElementById('admin-title-controls').classList.remove('hidden');
+                    document.getElementById('start-game-btn').classList.remove('hidden'); // Ensure Start button is back
+                    document.getElementById('next-btn').classList.add('hidden');
+                    if (state.joinedCount !== undefined) {
+                        document.getElementById('online-count').textContent = `目前上線人數：${state.joinedCount} 人`;
+                    }
+                } else if (!isPlayerJoined) {
+                    document.getElementById('join-btn').classList.remove('hidden');
+                    document.getElementById('student-waiting-text').classList.add('hidden');
+                } else {
+                    // Kick joined students back to login prompt ONLY if game was explicitly reset (joinedCount naturally goes back to 0)
+                    if (state.joinedCount === 0) {
+                        isPlayerJoined = false;
+                        document.getElementById('join-btn').classList.remove('hidden');
+                        document.getElementById('student-waiting-text').classList.add('hidden');
+                    } else {
+                        // Otherwise, they are already joined, just ensure the waiting text is visible
+                        document.getElementById('join-btn').classList.add('hidden');
+                        document.getElementById('student-waiting-text').classList.remove('hidden');
+                    }
+                }
+            } else {
+                document.getElementById('title-screen').classList.add('hidden');
+            }
+
+            // Only update currentSceneId and render if we actually changed scenes
+            if (currentSceneId !== newSceneId) {
+                currentSceneId = newSceneId;
+                hasVoted = false;
+
+                // Admin always renders, or Student renders if joined
+                if (isAdmin || isPlayerJoined) {
+                    renderScene(currentSceneId);
+                }
+            }
+
+            // Always fix button states when Admin is viewing
+            if (isAdmin) {
+                if (newSceneId !== 'waiting') {
+                    // Next btn becomes visible when voting ends or if not voting and not ending
+                    if (!state.isVotingActive && currentSceneId !== 'end_bad' && currentSceneId !== 'end_good') {
+                        document.getElementById('next-btn').classList.remove('hidden');
+                    } else if (state.isVotingActive) {
+                        document.getElementById('next-btn').classList.remove('hidden');
+                    } else {
+                        document.getElementById('next-btn').classList.add('hidden');
+                    }
+                }
+                document.getElementById('reset-game-btn').classList.remove('hidden');
+            }
+
+            if (currentSceneData.isVoting) {
+                if (isAdmin) {
+                    updateVotingChart(state.votes);
+                    document.getElementById('next-btn').classList.remove('hidden');
+                    document.getElementById('voting-chart').classList.remove('hidden');
+                } else {
+                    const waitingMessage = document.getElementById('waiting-message');
+                    const votingOptions = document.getElementById('voting-options');
+
+                    if (state.isVotingActive && !hasVoted) {
+                        votingOptions.classList.remove('hidden');
+                        waitingMessage.classList.add('hidden');
+
+                        votingOptions.innerHTML = '';
+                        Object.keys(currentSceneData.options).forEach(optKey => {
+                            const btn = document.createElement('button');
+                            btn.className = 'vote-btn';
+                            btn.textContent = currentSceneData.options[optKey].label;
+                            btn.onclick = () => castVote(optKey);
+                            votingOptions.appendChild(btn);
+                        });
+                    } else if (hasVoted) {
+                        votingOptions.classList.add('hidden');
+                        waitingMessage.classList.remove('hidden');
+                    } else if (!state.isVotingActive) {
+                        votingOptions.classList.add('hidden');
+                        waitingMessage.classList.add('hidden');
+                    }
+                }
+            } else {
+                if (isAdmin) {
+                    document.getElementById('voting-chart').classList.add('hidden');
+                } else {
+                    document.getElementById('voting-options').classList.add('hidden');
+                    document.getElementById('waiting-message').classList.add('hidden');
+                }
+            }
+        }
+
+        function renderScene(sceneId) {
+            currentSceneData = storyData[sceneId];
+            if (!currentSceneData) return;
+
+            document.getElementById('scene-display').style.backgroundImage = `url('${currentSceneData.imagePath}')`;
+
+            const dialogueElement = document.getElementById('dialogue-text');
+            dialogueElement.textContent = '';
+            dialogueElement.classList.add('typewriter');
+
+            let i = 0;
+            const text = currentSceneData.text;
+
+            if (typeWriterTimeout) clearTimeout(typeWriterTimeout);
+
+            function typeWriter() {
+                if (i < text.length) {
+                    dialogueElement.textContent += text.charAt(i);
+                    i++;
+                    typeWriterTimeout = setTimeout(typeWriter, 50);
+                } else {
+                    dialogueElement.classList.remove('typewriter');
+                }
+            }
+            typeWriter();
+        }
+
+        function castVote(option) {
+            if (hasVoted || !roomState.isVotingActive) return;
+
+            hasVoted = true;
+
+            // Hide UI immediately for better responsiveness
+            document.getElementById('voting-options').classList.add('hidden');
+            document.getElementById('waiting-message').classList.remove('hidden');
+
+            const votesRef = db.ref('room_state/votes');
+            votesRef.transaction((currentVotes) => {
+                if (currentVotes) {
+                    currentVotes[option] = (currentVotes[option] || 0) + 1;
+                }
+                return currentVotes;
+            });
+        }
+
+        function updateVotingChart(votes) {
+            const votesTotal = (votes.A || 0) + (votes.B || 0);
+            // The denominator is the max between the actual people who voted, and the total joined count.
+            // If total joined count is 0 (due to some error), at least use votesTotal, or at minimum 1 to avoid div-by-zero.
+            const denominator = Math.max(roomState.joinedCount || 0, votesTotal, 1);
+
+            const percentA = Math.round(((votes.A || 0) / denominator) * 100);
+            const percentB = Math.round(((votes.B || 0) / denominator) * 100);
+
+            const labelA = currentSceneData.options.A.label;
+            const labelB = currentSceneData.options.B.label;
+
+            document.getElementById('bar-A').style.width = `${percentA}%`;
+            document.getElementById('label-A').textContent = `${labelA} - ${votes.A || 0}票 (${percentA}%)`;
+
+            document.getElementById('bar-B').style.width = `${percentB}%`;
+            document.getElementById('label-B').textContent = `${labelB} - ${votes.B || 0}票 (${percentB}%)`;
+        }
+    </script>
+</body>
+
+</html>
