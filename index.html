@@ -27,10 +27,13 @@
             margin: 0;
             padding: 0;
             width: 100%;
-            height: 100%;
+            height: auto;
+            min-height: 100vh;
             background-color: var(--bg-color);
             font-family: 'Sawarabi Mincho', "Helvetica Neue", Arial, "微軟正黑體", serif;
-            overflow: hidden;
+            overflow-x: hidden;
+            overflow-y: auto;
+            /* 允許整個網頁自然上下滾動 */
             /* 防止螢幕滾動，營造遊戲全螢幕感 */
             user-select: none;
         }
@@ -38,7 +41,8 @@
         #game-container {
             display: flex;
             flex-direction: column;
-            height: 100vh;
+            height: auto;
+            min-height: 100vh;
             width: 100vw;
             position: relative;
             max-width: 100vw;
@@ -47,36 +51,32 @@
 
         /* ======= 場景與 UI 70/30 比例分配 ======= */
         #scene-display {
-            height: 100vh;
+            height: 75vh;
             width: 100%;
             background-color: #000;
             background-size: cover;
-            background-position: center;
+            background-position: center top;
+            /* 確保人物頭部與身體主體在畫面內 */
             background-repeat: no-repeat;
             transition: background-image 0.5s ease-in-out;
         }
 
         #ui-area {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: auto;
+            position: relative;
+            margin-top: -20vh;
+            /* 往上拉，蓋住圖片底部 */
             min-height: 45vh;
-            /* 保留足夠的高度給按鈕 */
-            max-height: 80vh;
-            /* 避免文字太多遮住整張圖 (adjusted slightly higher just in case) */
-            overflow-y: auto;
-            /* 允許內部滾動 */
-            /* 使用漸層背景，上方透明過渡到下方深黑 */
-            background: linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.85) 15%, rgba(0, 0, 0, 0.95) 100%);
-            border-top: none;
-            /* 移除原本的死硬邊線 */
-            padding: 40px 20px 20px 20px;
+            height: auto;
+            /* 讓內容自動撐開高度 */
+            z-index: 10;
+            /* 漸層背景：頂部完全透明，往下漸漸變黑 */
+            background: linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.85) 30%, rgba(0, 0, 0, 0.95) 100%);
+            padding: 80px 40px 40px 40px;
+            /* 上方多留一點 padding 讓文字不會貼著透明區 */
+            border: none;
             display: flex;
             flex-direction: column;
             justify-content: flex-start;
-            z-index: 10;
             /* Hide scrollbar for standard browsers if supported */
             scrollbar-width: none;
             -ms-overflow-style: none;
@@ -443,12 +443,28 @@
 
         /* ======= 手機端自適應 ======= */
         @media (max-width: 768px) {
+            #scene-display {
+                height: 55vh;
+                /* 手機上圖片佔比縮小，讓人物比例剛好 */
+            }
+
+            #ui-area {
+                margin-top: -15vh;
+                /* 疊加範圍縮小 */
+                padding: 60px 20px 60px 20px;
+                /* 確保底部有足夠空間留給按鈕 */
+            }
+
             #dialogue-text {
                 font-size: 1.2rem;
             }
 
+            #voting-options {
+                gap: 10px;
+            }
+
             .vote-btn {
-                padding: 12px 15px;
+                padding: 12px;
                 font-size: 1rem;
             }
         }
@@ -466,7 +482,7 @@
 
         <!-- 學生端：等候訊息 -->
         <h3 id="student-waiting-text" class="hidden" style="color: #ccc; font-weight: normal; margin-top: 20px;">
-            海風帶來了微鹹的氣息，故事即將展開... (等待其他人加入中)</h3>
+            海風帶來了微鹹的氣息，\n故事即將展開...\n(等待其他人加入中)</h3>
 
         <!-- 教師端控制面板 (在大廳) -->
         <div id="admin-title-controls" class="hidden">
@@ -549,7 +565,7 @@
                 next: "scene_01"
             },
             "scene_01": {
-                text: "結衣帶著淡雅的香水味湊到我肩邊，滑著手機螢幕，琥珀色的眼眸閃閃發光：「吶，你想吃那間評價4.8顆星開了二十年的有名牛排館，還是這間上個月新開，可以聽著海浪聲喝調酒的星空餐酒館呀？」",
+                text: "結衣帶著淡雅的香水味湊到我肩邊：「吶，你想吃那間評價4.8顆星開了二十年的有名牛排館，還是這間上個月新開，可以聽著海浪聲喝調酒的星空餐酒館呀？」",
                 imagePath: "./image/02.png",
                 isVoting: true,
                 options: {
