@@ -777,7 +777,7 @@
                 document.getElementById('reset-game-btn').classList.remove('hidden');
             }
 
-            if (currentSceneData.isVoting) {
+            if (currentSceneData && currentSceneData.isVoting) {
                 if (isAdmin) {
                     updateVotingChart(state.votes);
                     document.getElementById('next-btn').classList.remove('hidden');
