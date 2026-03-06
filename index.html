@@ -482,7 +482,7 @@
 
         <!-- 學生端：等候訊息 -->
         <h3 id="student-waiting-text" class="hidden" style="color: #ccc; font-weight: normal; margin-top: 20px;">
-            海風帶來了微鹹的氣息，\n故事即將展開...\n(等待其他人加入中)</h3>
+            海風帶來了微鹹的氣息，<br>故事即將展開...<br>(等待其他人加入中)</h3>
 
         <!-- 教師端控制面板 (在大廳) -->
         <div id="admin-title-controls" class="hidden">
@@ -520,7 +520,7 @@
                     </div>
                 </div>
                 <!-- 注意：現在大廳等待提示移至 title-screen，這裡主要供遊戲內等候投票使用 -->
-                <p id="waiting-message" class="hidden">等待老師與其他人...</p>
+                <p id="waiting-message" class="hidden">等待其他人回覆...</p>
                 <!-- 教師端下一步按鈕 -->
                 <button id="next-btn" class="hidden">▶</button>
             </div>
@@ -555,7 +555,7 @@
 
         const storyData = {
             "waiting": {
-                text: "海風帶來了微鹹的氣息，\n故事即將展開...\n(等待其他人加入中)",
+                text: "",
                 imagePath: "",
                 isVoting: false
             },
