@@ -538,12 +538,20 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js"></script>
 
-    <!-- Firebase configuration -->
-    <script src="firebase-config.js"></script>
-
     <!-- Main Game Logic -->
     <script>
-        // Firebase initialization (config loaded from firebase-config.js)
+        // Firebase initialization with compat mode to run over file:///
+        const firebaseConfig = {
+            apiKey: "AIzaSyDPresURGBmmFWI60CXVNGpD4B2gkXdJMQ",
+            authDomain: "lovegame-3ed57.firebaseapp.com",
+            databaseURL: "https://lovegame-3ed57-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "lovegame-3ed57",
+            storageBucket: "lovegame-3ed57.firebasestorage.app",
+            messagingSenderId: "518614987215",
+            appId: "1:518614987215:web:ef25e1d5826db774cc22ba",
+            measurementId: "G-P2PSXP5L4P"
+        };
+
         const app = firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
