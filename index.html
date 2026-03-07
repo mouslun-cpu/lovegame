@@ -493,7 +493,7 @@
                 <div class="qr-hint">學生掃描加入</div>
             </div>
             <p id="online-count">目前上線人數：0 人</p>
-            <button id="start-game-btn" class="title-btn">開始遊戲 ▶</button>
+            <button id="start-game-btn" cl十ass="title-btn">開始遊戲 ▶</button>
         </div>
 
         <!-- 版權與版本宣告 -->
@@ -538,20 +538,12 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js"></script>
 
+    <!-- Firebase configuration -->
+    <script src="firebase-config.js"></script>
+
     <!-- Main Game Logic -->
     <script>
-        // Firebase initialization with compat mode to run over file:///
-        const firebaseConfig = {
-            apiKey: "AIzaSyDPresURGBmmFWI60CXVNGpD4B2gkXdJMQ",
-            authDomain: "lovegame-3ed57.firebaseapp.com",
-            databaseURL: "https://lovegame-3ed57-default-rtdb.asia-southeast1.firebasedatabase.app",
-            projectId: "lovegame-3ed57",
-            storageBucket: "lovegame-3ed57.firebasestorage.app",
-            messagingSenderId: "518614987215",
-            appId: "1:518614987215:web:ef25e1d5826db774cc22ba",
-            measurementId: "G-P2PSXP5L4P"
-        };
-
+        // Firebase initialization (config loaded from firebase-config.js)
         const app = firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
